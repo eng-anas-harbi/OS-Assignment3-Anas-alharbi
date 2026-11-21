@@ -60,47 +60,82 @@ class SharedStats {
     // Number of times a CPU found the ready queue empty and polled it again (busy waiting). Must be 0 after Feature 3.
     static final java.util.concurrent.atomic.AtomicInteger busyWaitPolls = new java.util.concurrent.atomic.AtomicInteger(0);
 
-    // TODO Feature 2: declare the lock(s) protecting the three shared variables above here.
-    // Think about it: ONE lock for the three variables, or ONE lock PER variable? (you must justify it in MY_WORK.md)
+    // Feature 2: One lock to protect all shared statistics
+    private static final ReentrantLock statsLock = new ReentrantLock();
 
     public static void incrementContextSwitch() {
-        // TODO Feature 2: protect this critical section
-        int tmp = contextSwitchCount;       // 1) read
-        RaceWindow.pause();                 //    <- another thread can read the SAME value here
-        contextSwitchCount = tmp + 1;       // 2) write  (one increment is lost if someone else did the same)
+        // Feature 2: Protect context switch counter
+        statsLock.lock();
+
+        try {
+            int tmp = contextSwitchCount;
+            RaceWindow.pause();
+            contextSwitchCount = tmp + 1;
+        } finally {
+            statsLock.unlock();
+        }
     }
 
     public static void incrementCompletedProcess() {
-        // TODO Feature 2: protect this critical section
-        int tmp = completedProcessCount;
-        RaceWindow.pause();
-        completedProcessCount = tmp + 1;
+        // Feature 2: Protect completed process counter
+        statsLock.lock();
+
+        try {
+            int tmp = completedProcessCount;
+            RaceWindow.pause();
+            completedProcessCount = tmp + 1;
+        } finally {
+            statsLock.unlock();
+        }
     }
 
     public static void addServiceTime(int ms) {
-        // TODO Feature 2: protect this critical section
-        long tmp = totalServiceTime;
-        RaceWindow.pause();
-        totalServiceTime = tmp + ms;
+        // Feature 2: Protect total service time
+        statsLock.lock();
+
+        try {
+            long tmp = totalServiceTime;
+            RaceWindow.pause();
+            totalServiceTime = tmp + ms;
+        } finally {
+            statsLock.unlock();
+        }
     }
 
     // Readers must also be protected (a read in the middle of an update is not safe either)
     public static int getCompletedProcessCount() {
-        // TODO Feature 2: protect this read
-        return completedProcessCount;
+        // Feature 2: Protect reading completed process count
+        statsLock.lock();
+
+        try {
+            return completedProcessCount;
+        } finally {
+            statsLock.unlock();
+        }
     }
 
     public static int getContextSwitchCount() {
-        // TODO Feature 2: protect this read
-        return contextSwitchCount;
+        // Feature 2: Protect reading context switch count
+        statsLock.lock();
+
+        try {
+            return contextSwitchCount;
+        } finally {
+            statsLock.unlock();
+        }
     }
 
     public static long getTotalServiceTime() {
-        // TODO Feature 2: protect this read
-        return totalServiceTime;
+        // Feature 2: Protect reading total service time
+        statsLock.lock();
+
+        try {
+            return totalServiceTime;
+        } finally {
+            statsLock.unlock();
+        }
     }
 }
-
 // ⚠️ THE READY QUEUE: shared by ALL the CPU threads ⚠️
 // In Assignment 1 only the main thread used the queue. Now several CPUs poll and re-enqueue processes
 // at the same time, so every access to `list` and `map` is a critical section.
