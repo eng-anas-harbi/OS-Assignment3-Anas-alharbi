@@ -143,7 +143,6 @@ class ReadyQueue {
     private final Map<Thread, Process> map = new HashMap<>();     // thread -> process (same idea as Assignment 1)
     private final ReentrantLock queueLock = new ReentrantLock();
 
-    // TODO Feature 1: declare the lock protecting `list` and `map` here
 
     // Feature 3: Count available processes in the ready queue
     private final Semaphore availableProcesses = new Semaphore(0);
